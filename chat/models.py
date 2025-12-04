@@ -1,0 +1,34 @@
+from django.db import models
+import uuid
+
+ROLES=[
+    ('agent','agent'),
+    ('customer','customer'),
+    ('system','system'),
+]
+
+class Session(models.Model):
+    id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    title=models.CharField(max_length=255,blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+
+    #fk to user
+    agent_id=models.CharField(max_length=150,null=True,blank=True)
+    customer_id=models.CharField(max_length=150,null=True,blank=True)
+
+    meeting_link=models.CharField(max_length=1024,null=True,blank=True)
+    def __str__(self):
+        return f"Session {self.id} - {self.title or 'untitled'}"
+
+class Message(models.Model):
+    session=models.ForeignKey(Session,related_name='messages',on_delete=models.CASCADE)
+    sender=models.CharField(max_length=150)
+    role=models.CharField(max_length=20,choices=ROLES,default='customer')
+    text=models.TextField()
+    sent_at=models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering=['sent_at']
+    
+    def __str__(self):
+        return f"[{self.sent_at}] {self.role}:{self.sender} - {self.text[:40]}"
