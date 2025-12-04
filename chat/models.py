@@ -1,5 +1,6 @@
-from django.db import models
 import uuid
+from django.db import models
+from django.utils import timezone
 
 ROLES=[
     ('agent','agent'),
@@ -32,3 +33,30 @@ class Message(models.Model):
     
     def __str__(self):
         return f"[{self.sent_at}] {self.role}:{self.sender} - {self.text[:40]}"
+
+class MeetingLink(models.Model):
+    id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    session=models.ForeignKey('chat.Session',related_name='meeting_links',on_delete=models.CASCADE)
+    creator=models.CharField(max_length=150,null=True,blank=True)
+    room_name=models.CharField(max_length=255)
+    one_time=models.BooleanField(default=True)
+    allowed_count=models.IntegerField(default=2)
+    issued_count=models.IntegerField(default=0)
+    used=models.BooleanField(default=False)
+    expires_at=models.DateTimeField(null=True,blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    last_issued_at=models.DateTimeField(null=True,blank=True)
+
+    class Meta:
+        ordering=['-created_at']
+    
+    def is_expired(self):
+        if not self.expires_at:
+            return False
+        return timezone.now() > self.expires_at
+    
+    def public_url(self,base='https://chat.app/meet/'):
+        return f"{base}{self.id}"
+    
+    def __str__(self):
+        return f"MeetingLink {self.id} for Session {self.session_id}"

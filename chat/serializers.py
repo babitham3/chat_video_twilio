@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Session,Message
+from .models import Session,Message,MeetingLink
+from django.utils import timezone
 
 class SessionSeralizer(serializers.ModelSerializer):
     class Meta:
@@ -11,3 +12,10 @@ class MessageSeralizer(serializers.ModelSerializer):
         model=Message
         fields=['id','session','sender','role','text','sent_at']
         read_only_fields=['id','sent_at']
+
+class MeetingLinkSerializer(serializers.ModelSerializer):
+    session=serializers.PrimaryKeyRelatedField(read_only=True)
+    class Meta:
+        model=MeetingLink
+        fields=['id','session','creator','room_name','one_time','allowed_count','issued_count','used','expires_at','created_at','last_issued_at']
+        read_only_fields=['id','issued_count','used','created_at','last_issued_at']
