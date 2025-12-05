@@ -143,3 +143,10 @@ def issue_meeting_token(request,link_id):
         'identity':identity,
         'issued_count':m.issued_count
     })
+
+from django.http import JsonResponse
+from .consumers import PRESENCE
+def presence_view(request,session_id):
+    #GET /api/sessions/<session_id>/presence/
+    users=list(PRESENCE.get(str(session_id),set()))
+    return JsonResponse({"session_id":str(session_id),"online":users})
