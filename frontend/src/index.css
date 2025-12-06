@@ -66,3 +66,33 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+
+/* ChatRoom overrides for readability */
+.chat-root, .chat-root * {
+  color: inherit !important;
+  background: inherit !important;
+  height: 100%;
+  display:flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* If you use the inline styles above, this helps ensure good contrast */
+.chat-container {
+  background: #ffffff;
+  color: #0b1420;
+}
+
+/* Input styling fallback (if you rely on global CSS) */
+.chat-input {
+  color: #0b1420;
+  background: #ffffff;
+}
+
+.chat-messages{
+  flex:1;
+  overflow: auto;
+  min-height: 0;
+  word-break: break-word;
+}

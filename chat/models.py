@@ -18,6 +18,7 @@ class Session(models.Model):
     customer_id=models.CharField(max_length=150,null=True,blank=True)
 
     meeting_link=models.CharField(max_length=1024,null=True,blank=True)
+    is_active=models.BooleanField(default=True)
     def __str__(self):
         return f"Session {self.id} - {self.title or 'untitled'}"
 

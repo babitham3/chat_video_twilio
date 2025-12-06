@@ -12,5 +12,7 @@ urlpatterns=[
     path('meetings/<uuid:link_id>/validate/', views.validate_meeting_link,name='validate_meeting_link'),
     path('meetings/<uuid:link_id>/issue/',views.issue_meeting_token,name='issue_meeting_token'),
 
-    path("sessions/<uuid:session_id>/presence/",views.presence_view,name="presence_view")
+    path("sessions/<uuid:session_id>/presence/",views.presence_view,name="presence_view"),
+    path("sessions/list/",views.list_sessions,name="list_sessions"),
+    path("sessions/<uuid:pk>/close/",views.close_session),
 ]

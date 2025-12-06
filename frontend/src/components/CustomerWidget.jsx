@@ -5,6 +5,7 @@ export default function CustomerWidget({apiBase="http://127.0.0.1:8000/api",star
     const [sessionId,setSessionId]=useState(localStorage.getItem("support_session_id") || null);
     const [visitorID,setVisitorId]=useState(localStorage.getItem("support_visitor") || null);
     const [open,setOpen]=useState(!startHidden);
+    const [visitorName,setVisitorName]=useState(localStorage.getItem("support_visitor_name") || "");
 
     useEffect(()=>{
         if(!visitorID){
@@ -12,6 +13,8 @@ export default function CustomerWidget({apiBase="http://127.0.0.1:8000/api",star
         localStorage.setItem("support_visitor",v);
         setVisitorId(v);
         }
+        const savedName = localStorage.getItem("support_visitor_name");
+        if (savedName) setVisitorName(savedName);
     },[visitorID]);
 
     async function createSession(){
@@ -49,10 +52,10 @@ export default function CustomerWidget({apiBase="http://127.0.0.1:8000/api",star
                 position:"fixed",right:20,bottom:20,width:380,height:560,zIndex:9999,
                 boxShadow:"0 10px 30px rgba(0,0,0,0.12)", borderRadius: 10, overflow: "hidden", background: "#fff", display: "flex", flexDirection: "column"
             }}>
-                <div style={{ padding: 10, borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ padding: 10, borderBottom: "1px solid #c32727ff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <strong>Support</strong>
                     <div>
-                        <button onClick={closeChat}style={{ border: "none", background: "none", cursor: "pointer" }}>Close</button>
+                        <button onClick={closeChat}style={{ border: "none", background: "none", cursor: "pointer" ,color:"black"}}>Close</button>
                     </div>
                 </div>
 

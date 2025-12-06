@@ -150,3 +150,29 @@ def presence_view(request,session_id):
     #GET /api/sessions/<session_id>/presence/
     users=list(PRESENCE.get(str(session_id),set()))
     return JsonResponse({"session_id":str(session_id),"online":users})
+
+@api_view(["GET"])
+def list_sessions(request):
+    # GET /api/sessions/list/
+    qs=Session.objects.filter(is_active=True).order_by("-created_at")[:50]
+    out=[]
+    for s in qs:
+        out.append({
+            "id":str(s.id),
+            "title":s.title,
+            "agent_id":s.agent_id,
+            "customer_id":s.customer_id,
+            "meeting_link":s.meeting_link,
+            "created_at":s.created_at.isoformat(),
+        })
+    return Response(out)
+
+@api_view(["POST"])
+def close_session(request, pk):
+    try:
+        s = Session.objects.get(pk=pk)
+    except Session.DoesNotExist:
+        return Response({"detail": "Not found"}, status=404)
+    s.is_active = False
+    s.save(update_fields=["is_active"])
+    return Response({"status": "closed"})
