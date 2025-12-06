@@ -32,29 +32,48 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
     };
 
     socket.onmessage = (ev) => {
+      let data;
       try {
-        const data = JSON.parse(ev.data);
-        if (data.type === "message") {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: data.id,
-              sender: data.sender,
-              role: data.role,
-              text: data.text,
-              created_at: data.created_at,
-            },
-          ]);
-        } else if (data.type === "presence") {
-          if (data.action === "joined")
-            setOnline((o) => Array.from(new Set([...o, data.user])));
-          if (data.action === "left")
-            setOnline((o) => o.filter((u) => u !== data.user));
-        } else if (data.type === "identified") {
-          setOnline(data.online || []);
-        }
+        data = JSON.parse(ev.data);
       } catch (e) {
-        console.error("ws parse", e);
+        console.error("ws parse", e,ev.data);
+        return;
+      }
+
+      const t=data.type;
+      const isChatMsg=
+      t === "message" ||
+        t === "chat.message" ||
+        t === "chat_message";
+
+      const isPresence =
+        t === "presence" ||
+        t === "presence.update" ||
+        t === "presence_update";
+      
+        const isIdent = t === "identified";
+
+      if (isChatMsg) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: data.id,
+            sender: data.sender,
+            role: data.role,
+            text: data.text || data.message,
+            created_at: data.created_at,
+          },
+        ]);
+      } else if (isPresence) {
+        if (data.action === "joined") {
+          setOnline((o) => Array.from(new Set([...o, data.user])));
+        } else if (data.action === "left") {
+          setOnline((o) => o.filter((u) => u !== data.user));
+        }
+      } else if (isIdent) {
+        setOnline(data.online || []);
+      } else {
+        console.log("WS other event:", data);
       }
     };
 
