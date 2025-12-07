@@ -7,6 +7,7 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const messagesRef = useRef(null);
+  const [sendingInvite,setSendingInvite]=useState(false);
 
   // Load initial messages
   useEffect(() => {
@@ -115,6 +116,49 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
     setText("");
   }
 
+  async function sendVideoInvite(){
+    if(!sessionId) return;
+    try{
+      setSendingInvite(true);
+      const res=await fetch(`${apiBase}/sessions/${sessionId}/meetings/create/`,{
+        method: "POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          creator:user,
+          one_time: true,
+          allowed_count:2,
+        }),
+      });
+      if(!res.ok){
+        console.error("create meeting failed",res.status);
+        return;
+      }
+      const data=await res.json();
+      const linkId=data.id;
+
+      //frontend join url
+      const joinUrl = `${window.location.origin}/meet/${linkId}`;
+
+      //send an invite as a chat message
+      if(ws && ws.readyState===1){
+        ws.send(
+          JSON.stringify({
+            action:"message",
+            text:`Video call invite: ${joinUrl}`,
+            user,
+            role,
+            is_video_invite: true,
+            link_id:linkId,
+          })
+        );
+      }
+    }catch(e){
+      console.error("sendVideoInvite error",e);
+    }finally{
+      setSendingInvite(false);
+    }
+  }
+
   const fmtTime = (iso) => {
     if (!iso) return "";
     try {
@@ -134,11 +178,14 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
           fontSize: 12,
           display: "flex",
           justifyContent: "space-between",
+          alignItems:"center",
+          gap:8,
         }}
       >
         <span>
           <strong>Session:</strong> {sessionId}
         </span>
+        <span style={{display:"flex",alignItems:"center",gap:8}}>
         <span>
           {connected ? (
             <span style={{ color: "green" }}>connected</span>
@@ -148,6 +195,26 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
           <span style={{ marginLeft: 8 }}>
             Online: {online.join(", ") || "—"}
           </span>
+        </span>
+        {/*agent only button*/}
+        {role==="agent" &&(
+          <button
+          type="button"
+          onClick={sendVideoInvite}
+          disabled={sendingInvite || !connected}
+          style={{
+            padding:"4px 8px",
+            fontSize:12,
+            borderRadius:4,
+            border:"1px solid #0b69ff",
+            background: sendingInvite ? "#e5efff" : "#0b69ff",
+            color:"#fff",
+            cursor:sendingInvite ?"default" : "pointer",
+          }}
+          >
+            {sendingInvite?"Sending...":"Send video invite"}
+          </button>
+        )}
         </span>
       </div>
 
