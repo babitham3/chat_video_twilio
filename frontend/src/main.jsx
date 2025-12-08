@@ -1,8 +1,8 @@
-// src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import CustomerWidget from "./components/CustomerWidget";
 import AgentDashboard from "./components/AgentDashboard";
+import MeetingPage from "./components/MeetingPage";
 import "./index.css";
 
 
@@ -10,15 +10,14 @@ function Home() {
   return (
     <div>
       <header style={{ padding: 20, borderBottom: "1px solid #eee" }}>
-        <h1>Acme Support</h1>
+        <h1>Happyfox Support</h1>
         <p>Welcome — click the chat button in the bottom-right to talk to support.</p>
       </header>
 
       <main style={{ padding: 20 }}>
-        <p>Your marketing/home content goes here. The chat widget will float above this page.</p>
+        <p>WELCOMEEE HEHE.</p>
       </main>
 
-      {/* Floating widget only on the home page */}
       <CustomerWidget apiBase="http://127.0.0.1:8000/api" startHidden={true} />
     </div>
   );
@@ -29,7 +28,7 @@ function AgentPage() {
     <div>
       <header style={{ padding: 20, borderBottom: "1px solid #eee" }}>
         <h1>Agent Portal</h1>
-        <p>Single-agent mode — use this page for agent work.</p>
+        <p>Single-agent mode</p>
       </header>
       <main style={{ padding: 20 }}>
         <AgentDashboard apiBase="http://127.0.0.1:8000/api" />
@@ -38,9 +37,17 @@ function AgentPage() {
   );
 }
 
+function AppRouter(){
+  const pathname=window.location.pathname.toLowerCase();
 
-const pathname = (window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : "/";
-const isAgentPath = pathname === "/agent" || pathname === "/agent/";
-const Root = () => (isAgentPath ? <AgentPage /> : <Home />);
+  if(pathname.startsWith("/meet/")){
+    return <MeetingPage apiBase="http://127.0.0.1:8000/api"/>;
+  }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<Root />);
+  if(pathname==="/agent" || pathname==="/agent/"){
+    return <AgentPage/>;
+  }
+  return <Home/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<AppRouter/>);

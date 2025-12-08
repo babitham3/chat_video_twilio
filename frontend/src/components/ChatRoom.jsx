@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 
 export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.0.0.1:8000/api" }) {
+  console.log("chat haha",{sessionId,user,role});
   const [ws, setWs] = useState(null);
   const [connected, setConnected] = useState(false);
   const [online, setOnline] = useState([]);
@@ -20,75 +21,117 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
 
   // WebSocket setup
   useEffect(() => {
-    if (!sessionId || !user) return;
+  if (!sessionId || !user) return;
 
-    const WS_HOST = "127.0.0.1:8000";
-    const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const url = `${proto}://${WS_HOST}/ws/sessions/${sessionId}/`;
-    const socket = new WebSocket(url);
+  const WS_HOST = "127.0.0.1:8000";
+  const proto = window.location.protocol === "https:" ? "wss" : "ws";
+  const url = `${proto}://${WS_HOST}/ws/sessions/${sessionId}/`;
 
-    socket.onopen = () => {
-      setConnected(true);
-      socket.send(JSON.stringify({ action: "identify", user, role }));
-    };
+  console.log("ChatRoom: opening WS", { url, user, role });
 
-    socket.onmessage = (ev) => {
-      let data;
-      try {
-        data = JSON.parse(ev.data);
-      } catch (e) {
-        console.error("ws parse", e,ev.data);
-        return;
-      }
+  const socket = new WebSocket(url);
 
-      const t=data.type;
-      const isChatMsg=
+  socket.onopen = () => {
+    console.log("WS opened", { sessionId, user, role });
+    setConnected(true);
+    socket.send(JSON.stringify({ action: "identify", user, role }));
+  };
+
+  socket.onmessage = (ev) => {
+    console.log("WS EVENT RAW:", ev.data); 
+
+    let data;
+    try {
+      data = JSON.parse(ev.data);
+    } catch (e) {
+      console.error("WS JSON parse error", e, ev.data);
+      return;
+    }
+
+    const t = data.type;
+    console.log("WS EVENT PARSED:", t, data);
+
+    const isChatMsg =
       t === "message" ||
-        t === "chat.message" ||
-        t === "chat_message";
+      t === "chat.message" ||
+      t === "chat_message";
 
-      const isPresence =
-        t === "presence" ||
-        t === "presence.update" ||
-        t === "presence_update";
-      
-        const isIdent = t === "identified";
+    const isPresence =
+      t === "presence" ||
+      t === "presence.update" ||
+      t === "presence_update";
 
-      if (isChatMsg) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: data.id,
-            sender: data.sender,
-            role: data.role,
-            text: data.text || data.message,
-            created_at: data.created_at,
-          },
-        ]);
-      } else if (isPresence) {
-        if (data.action === "joined") {
-          setOnline((o) => Array.from(new Set([...o, data.user])));
-        } else if (data.action === "left") {
-          setOnline((o) => o.filter((u) => u !== data.user));
-        }
-      } else if (isIdent) {
-        setOnline(data.online || []);
-      } else {
-        console.log("WS other event:", data);
+    const isIdent = t === "identified";
+
+    const isMeeting = t === "meeting.started" || t === "meeting_started";
+
+    if (isChatMsg) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: data.id,
+          sender: data.sender,
+          role: data.role,
+          text: data.text || data.message,
+          created_at: data.created_at,
+        },
+      ]);
+      return;
+    }
+
+    if (isPresence) {
+      if (data.action === "joined") {
+        setOnline((o) => Array.from(new Set([...o, data.user])));
+      } else if (data.action === "left") {
+        setOnline((o) => o.filter((u) => u !== data.user));
       }
-    };
+      return;
+    }
 
-    socket.onclose = () => {
-      setConnected(false);
-      setWs(null);
-    };
-    socket.onerror = (err) => console.error("WS error", err);
+    if (isIdent) {
+      setOnline(data.online || []);
+      return;
+    }
 
-    setWs(socket);
-    return () => {
-      if (socket && socket.readyState === 1) socket.close();
-    };
-  }, [sessionId, user, role]);
+    if (isMeeting) {
+      console.log("WS meeting.started for role", role, data);
+
+      if (role === "agent") {
+        const identity = user || "agent";
+        const joinUrl = `${window.location.origin}/meet/${data.link_id}?identity=${encodeURIComponent(
+          identity
+        )}&auto_join=1&role=agent`;
+
+        console.log("Agent redirecting to", joinUrl);
+        // Same-tab navigation so browser cannot block it
+        window.location.href = joinUrl;
+      }
+      return;
+    }
+
+    console.log("WS OTHER EVENT:", data);
+  };
+
+  socket.onerror = (err) => {
+    console.error("WS error", err);
+  };
+
+  socket.onclose = () => {
+    console.log("WS closed", { sessionId, user, role });
+    setConnected(false);
+    setWs(null);
+  };
+
+  setWs(socket);
+
+  return () => {
+    console.log("ChatRoom: closing WS", { sessionId, user, role });
+    if (socket && socket.readyState === 1) {
+      socket.close();
+    }
+  };
+}, [sessionId, user, role]);
+
 
   // Auto-scroll when messages change
   useEffect(() => {
@@ -137,18 +180,16 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
       const linkId=data.id;
 
       //frontend join url
-      const joinUrl = `${window.location.origin}/meet/${linkId}`;
+      const joinPath = `/meet/${linkId}`;
 
       //send an invite as a chat message
       if(ws && ws.readyState===1){
         ws.send(
           JSON.stringify({
             action:"message",
-            text:`Video call invite: ${joinUrl}`,
+            text:`Video call invite: ${joinPath}`,
             user,
             role,
-            is_video_invite: true,
-            link_id:linkId,
           })
         );
       }
@@ -169,6 +210,46 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
       return "";
     }
   };
+
+  function renderMessageText(text) {
+  if (!text) return null;
+
+  // 1) Handle /meet/<uuid> 
+  const meetRegex = /(\/meet\/[0-9a-fA-F-]+)/;
+  const meetMatch = text.match(meetRegex);
+  if (meetMatch) {
+    const path = meetMatch[1];               // "/meet/34e41e5c-..."
+    const before = text.slice(0, meetMatch.index);
+    const after = text.slice(meetMatch.index + path.length);
+    const id = path.split("/").pop();        // "34e41e5c-1dd7-46da-8a95-cc4ef9202217"
+    const href = `${window.location.origin}${path}`;
+
+    return (
+      <>
+        {before}
+        <a href={href} target="_blank" rel="noopener noreferrer">
+          {id}
+        </a>
+        {after}
+      </>
+    );
+  }
+
+  // 2) Fallback: http/https URLs → clickable
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return parts.map((part, idx) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a key={idx} href={part} target="_blank" rel="noopener noreferrer">
+          {part}
+        </a>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+}
 
   return (
     <div style={{ padding: 8, background: "#fff", color: "#222" }}>
@@ -239,7 +320,7 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
                 {m.created_at ? ` • ${fmtTime(m.created_at)}` : ""}
               </small>
             </div>
-            <div>{m.text}</div>
+            <div>{renderMessageText(m.text)}</div>
           </div>
         ))}
       </div>

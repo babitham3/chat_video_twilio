@@ -135,6 +135,20 @@ class SessionConsumer(AsyncWebsocketConsumer):
     async def send_json(self,content):
         await self.send(text_data=json.dumps(content))
 
+    async def meeting_started(self,event):
+        #event: { "type": "meeting_started", "session_id": "...", "link_id": "..." }
+        print(
+            "[WS DEBUG] meeting_started handler called:",
+            "session=", event.get("session_id"),
+            "link=", event.get("link_id"),
+            "chan=", self.channel_name,
+        )
+        await self.send_json({
+            "type":"meeting.started",
+            "session_id":event["session_id"],
+            "link_id": event["link_id"],
+        })
+
 
     
 

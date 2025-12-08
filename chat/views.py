@@ -8,6 +8,12 @@ from django.utils import timezone
 from django.db import transaction
 from .models import Session, Message, ROLES, MeetingLink
 from .serializers import SessionSeralizer, MessageSeralizer,MeetingLinkSerializer
+from django.conf import settings
+from twilio.jwt.access_token import AccessToken
+from twilio.jwt.access_token.grants import VideoGrant
+from datetime import timedelta
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 #read sender and role from header or query param (simple stub auth)
 def get_sender_and_role(request):
@@ -72,9 +78,9 @@ def create_meeting_link(request,session_id):
         return Response({'error':'session not found'},status=404)
     
     creator=request.data.get('creator') or request.headers.get('X-User') or None
-    one_time=bool(request.data.get('one_time',True))
-    allowed_count=int(request.data.get('allowed_count',2))
-    expires_at=request.data.get('expires_at',None)
+    one_time=False
+    allowed_count=0
+    expires_at=timezone.now()+timedelta(hours=1) #expires in one hour
 
     room_name=request.data.get('room_name') or f"session-{session_id}-{uuid.uuid4().hex[:8]}"
 
@@ -87,7 +93,7 @@ def create_meeting_link(request,session_id):
         expires_at=expires_at
     )
 
-    session.meeting_link=m.public_url(base='http://127.0.0.2:3000/meet/')
+    session.meeting_link=m.public_url(base='http://localhost:5173/meet/')
     session.save(update_fields=['meeting_link'])
 
     return Response(MeetingLinkSerializer(m).data,status=201)
@@ -103,46 +109,69 @@ def validate_meeting_link(request,link_id):
     
     if m.is_expired():
         return Response({'valid':False,'reason':'expired'},status=410)
-    if m.one_time and m.used:
-        return Response({'valid':False,'reason':'used'},status=410)
-    if m.issued_count>=m.allowed_count:
-        return Response({'valid':False,'reason':'full'},status=410)
     
     return Response({'valid':True,'room_name':m.room_name,'session_id':str(m.session_id)})
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def issue_meeting_token(request,link_id):
-    #POST /api/meetings/<linkid>/issue/ -> atomically increments issued_count and marks used if one_time
+def issue_meeting_token(request, link_id):
     try:
-        with transaction.atomic():
-            m=MeetingLink.objects.select_for_update().get(id=link_id)
-            if m.is_expired():
-                return Response({'error':'expired'},status=410)
-            if m.one_time and m.used:
-                return Response({'error':'used'},status=410)
-            if m.issued_count>=m.allowed_count:
-                return Response({'error':'full'},status=410)
-            
-            #if all is good
-            m.issued_count +=1
-            m.last_issued_at=timezone.now()
-            if m.one_time:
-                m.used=True
-            m.save(update_fields=['issued_count','last_issued_at','used'])
+        m = MeetingLink.objects.get(id=link_id)
     except MeetingLink.DoesNotExist:
-        return Response({'error':'not_found'},status=404)
-    
-    #token simulation -> to be replaced with twilio
-    identity=request.data.get('identity') or request.headers.get('X-User')
-    simulated_token=f"DUMMY-TOKEN-{uuid.uuid4().hex[:12]}"
+        return Response({'error': 'not_found'}, status=404)
+
+    if m.is_expired():
+        return Response({'error': 'expired'}, status=410)
+
+    identity = (
+        request.data.get('identity')
+        or request.headers.get('X-User')
+        or f"user-{uuid.uuid4().hex[:6]}"
+    )
+
+    account_sid = settings.TWILIO_ACCOUNT_SID
+    api_key_sid = settings.TWILIO_API_KEY_SID
+    api_key_secret = settings.TWILIO_API_KEY_SECRET
+
+    # allow dev mode with dummy token if Twilio not configured
+    if not (account_sid and api_key_sid and api_key_secret):
+        simulated_token = f"DUMMY-TOKEN-{uuid.uuid4().hex[:12]}"
+        token_str = simulated_token
+        mode = "dummy"
+    else:
+        token = AccessToken(account_sid, api_key_sid, api_key_secret, identity=identity)
+        video_grant = VideoGrant(room=m.room_name)
+        token.add_grant(video_grant)
+        jwt = token.to_jwt()
+        if isinstance(jwt, bytes):
+            jwt = jwt.decode("utf-8")
+        token_str = jwt
+        mode = "twilio"
+
+    # broadcast to WS so agent can auto-join
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is not None:
+            safe_session_id=str(m.session_id)
+            group_name=f"session_{safe_session_id}"
+            print("WS sending meeting_started to group:",group_name)
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {
+                    "type": "meeting_started",
+                    "session_id": safe_session_id,
+                    "link_id": str(m.id),
+                },
+            )
+    except Exception as e:
+        print("WS meeting_started send error:", e)
 
     return Response({
-        'token':simulated_token,
-        'room_name':m.room_name,
-        'identity':identity,
-        'issued_count':m.issued_count
-    })
+        'token': token_str,
+        'room_name': m.room_name,
+        'identity': identity,
+        'mode': mode,
+    }) 
 
 from django.http import JsonResponse
 from .consumers import PRESENCE
