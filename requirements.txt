@@ -1,0 +1,9 @@
+Django
+djangorestframework
+django-cors-headers
+
+channels
+twilio
+pytz
+asgiref
+python-dotenv
