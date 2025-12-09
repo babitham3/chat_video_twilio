@@ -36,7 +36,7 @@ It demonstrates how a helpdesk platform can elevate a normal text chat into a li
 
 - Customer Chat Widget -> Django API -> Twilio Token Issuer -> Twilio Video Cloud
     | WebSocket | JWT
-- Agent Dashboard <- Django Channels <- Meeting events <- Meeting page
+- Agent Dashboard <- Django  <- Meeting events <- Meeting page
 
 ## Setup Instructions
 
@@ -49,6 +49,11 @@ pip install -r requirements.txt
 
 python manage.py migrate
 python manage.py runserver
+```
+- NOTE: If using daphne, instead of runserver , use: 
+(Replace {chat_video} with the name of app in case you change it and {8000} with a port you want to run the server on)
+```bash
+daphne -b 127.0.0.1 -p 8000 chat_video.asgi:application
 ```
 ### **2.Frontend(React+Vite)**
 ```bash

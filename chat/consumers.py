@@ -70,7 +70,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-            #ack with current presence ,ist
+            #ack with current presence
             online=await self._get_presence(self.session_id)
             await self.send_json({"type":"identified","user":self.user,"online":list(online)})
             return
