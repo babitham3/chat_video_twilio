@@ -18,14 +18,14 @@ It demonstrates how a helpdesk platform can elevate a normal text chat into a li
 - Agent auto-joins when customer enters the meeting.
 - Allows camera/mic toggle, screen share using twilio tracks.
 
-### ** Meeting Analytics**
+### **Meeting Analytics**
 - Logs every event:
   - join/leave
   - mute/unmute
   - screen share start/stop
 - Computes meeting analytics automatically.
 
-### ** Twilio Integration**
+### **Twilio Integration**
 - Secure server-side video token generation.
 - WebRTC handled entirely through Twilio Video SDK.
 
@@ -40,7 +40,7 @@ It demonstrates how a helpdesk platform can elevate a normal text chat into a li
 
 ## Setup Instructions
 
-### ** 1. Backend Setup(Django) **
+### **1. Backend Setup(Django)**
 ```bash
 cd backend
 python3 -m venv venv
@@ -50,13 +50,13 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
-### ** 2. Frontend(React+Vite) **
+### **2.Frontend(React+Vite)**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-### ** Default URLS: **
+### **Default URLS:**
 ```bash
 Frontend: http://localhost:5173
 Backend API : http://127.0.0.1:8000/api 
@@ -69,3 +69,4 @@ TWILIO_API_KEY_SID=SKxxxx
 TWILIO_API_KEY_SECRET=xxxxxxxx
 TWILIO_AUTH_TOKEN=xxxxxxxx
 ```
+- You can get your credentials by signing up on twilio.com and creating an API key.
