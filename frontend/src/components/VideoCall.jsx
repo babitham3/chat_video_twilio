@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from "react";
 import { connect, createLocalTracks, LocalVideoTrack } from "twilio-video";
 
-export default function VideoCall({ token, roomName, sessionId, identity, onLeave }) {
+export default function VideoCall({ token, roomName, sessionId, identity,linkId,apiBase="http://127.0.0.1:8000/api", role,onLeave }) {
   const localTracksRef = useRef(null);
   const remoteTracksRef = useRef(null);
   const localNameRef = useRef(null);
@@ -46,6 +46,25 @@ export default function VideoCall({ token, roomName, sessionId, identity, onLeav
     const overlayEl = overlayRef.current;
     const overlayContentEl = overlayContentRef.current;
     const overlayCloseEl = overlayCloseRef.current;
+
+    async function logEvent(eventType,extra={}){
+        if(!linkId) return;
+        try{
+            await fetch(`${apiBase}/meetings/${linkId}/events/`,{
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                event_type: eventType,
+                identity,
+                role: extra.role || undefined,
+                metadata: extra.metadata || undefined,
+
+            }),
+        });
+    } catch(e){
+        console.debug("meeting_event log error",e);
+    }
+} 
 
     function setStatus(s) {
       if (statusTextEl) statusTextEl.textContent = s;
@@ -313,6 +332,8 @@ export default function VideoCall({ token, roomName, sessionId, identity, onLeav
         room = await connect(token, { name: roomName, tracks });
 
         setStatus("Connected");
+        await logEvent("joined",{role:role});
+
         if (joinBtn) joinBtn.textContent = "Connected";
         if (leaveBtn) leaveBtn.disabled = false;
         if (muteBtn) muteBtn.disabled = false;
@@ -515,6 +536,10 @@ export default function VideoCall({ token, roomName, sessionId, identity, onLeav
         publishedScreenPublication = pub;
         screenTrack = localScreenTrack;
 
+        await logEvent("screen_share_started",{
+            metadata:{track_kind:"video"},
+        });
+
         const thumb = createThumbForAttachedTrack(
           localNameEl?.textContent || identity || "you",
           localScreenTrack,
@@ -537,6 +562,7 @@ export default function VideoCall({ token, roomName, sessionId, identity, onLeav
           try {
             thumb.remove();
           } catch (_) {}
+          await logEvent("screen_share_stopped");
           if (shareBtn) shareBtn.style.display = "inline-block";
           if (stopShareBtn) {
             stopShareBtn.style.display = "none";
@@ -569,10 +595,12 @@ export default function VideoCall({ token, roomName, sessionId, identity, onLeav
         stopShareBtn.style.display = "none";
         stopShareBtn.disabled = true;
       }
+      await logEvent("screen_share_stopped");
       setStatus("Screen sharing stopped");
     }
 
-    function handleLeaveClick() {
+    async function handleLeaveClick() {
+      await logEvent("left");
       if (room) {
         room.disconnect();
       }

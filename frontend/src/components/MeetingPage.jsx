@@ -140,6 +140,9 @@ export default function MeetingPage({ apiBase = "http://127.0.0.1:8000/api" }) {
           roomName={roomName}
           sessionId={sessionId}
           identity={identity}
+          linkId={linkId}
+          apiBase={apiBase}
+          role={identityFromQuery?.includes("agent")?"agent":"customer"}
           onLeave={handleLeave}
         />
       </div>

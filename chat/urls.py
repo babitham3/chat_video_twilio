@@ -15,4 +15,8 @@ urlpatterns=[
     path("sessions/<uuid:session_id>/presence/",views.presence_view,name="presence_view"),
     path("sessions/list/",views.list_sessions,name="list_sessions"),
     path("sessions/<uuid:pk>/close/",views.close_session),
+    path('meetings/<uuid:link_id>/events/',views.meeting_event),
+    path('meetings/<uuid:link_id>/analytics/',views.meeting_analytics),
+    path('sessions/history/',views.list_all_sessions,name="sessions_history"),
+    path('sessions/<uuid:session_id>/summary/',views.session_summary,name="session_summary"),
 ]
