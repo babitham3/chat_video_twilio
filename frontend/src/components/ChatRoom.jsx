@@ -235,7 +235,7 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
     );
   }
 
-  // 2) Fallback: http/https URLs → clickable
+  // 2) Fallback: http/https URLs
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const parts = text.split(urlRegex);
 
@@ -299,7 +299,6 @@ export default function ChatRoom({ sessionId, user, role, apiBase = "http://127.
         </span>
       </div>
 
-      {/* FIXED HEIGHT messages */}
       <div
         ref={messagesRef}
         style={{

@@ -1,11 +1,9 @@
-// src/components/SessionSummaryPage.jsx
 import React, { useEffect, useState } from "react";
 
 export default function SessionSummaryPage({
   apiBase = "http://127.0.0.1:8000/api",
   sessionId: propSessionId,
 }) {
-  // Read from URL if not passed
   const path = window.location.pathname; // /sessions/<id>/summary
   const parts = path.split("/").filter(Boolean);
   const urlSessionId = parts[0] === "sessions" && parts.length>=2 ? parts[1]:null;
@@ -42,7 +40,6 @@ export default function SessionSummaryPage({
 
   useEffect(() => {
     loadSummary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   function goBackToSessions() {
@@ -241,8 +238,6 @@ export default function SessionSummaryPage({
                 <tr key={m.id} style={{ borderTop: "1px solid #f3f4f6" }}>
                   <td style={tdStyle}>
                     <div style={{ fontWeight: 500, color: "#111827" }}>{m.id}</div>
-                    {/* if you don't want the duplicate, you can remove this line */}
-                    {/* <div style={{ fontSize: 11, color: "#6b7280" }}>{m.link_id}</div> */}
                   </td>
                   <td style={tdStyle}>{m.room_name}</td>
                   <td style={tdStyle}>{started}</td>

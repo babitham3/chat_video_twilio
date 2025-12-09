@@ -1,4 +1,3 @@
-// src/components/MeetingPage.jsx
 import React, { useEffect, useState } from "react";
 import VideoCall from "./VideoCall";
 
@@ -113,7 +112,6 @@ export default function MeetingPage({ apiBase = "http://127.0.0.1:8000/api" }) {
     if (autoJoin && identityFromQuery && state.status === "ready") {
       joinWithIdentity(identityFromQuery);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoJoin, identityFromQuery, state.status]);
 
   function handleLeave() {

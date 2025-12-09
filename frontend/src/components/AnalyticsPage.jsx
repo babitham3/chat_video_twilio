@@ -1,4 +1,3 @@
-// src/components/AnalyticsPage.jsx
 import React, { useEffect, useState } from "react";
 
 export default function AnalyticsPage({ apiBase = "http://127.0.0.1:8000/api", linkId }) {

@@ -1,4 +1,3 @@
-// src/components/SessionsLogPage.jsx
 import React, { useEffect, useState } from "react";
 
 export default function SessionsLogPage({ apiBase = "http://127.0.0.1:8000/api" }) {

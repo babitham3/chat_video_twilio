@@ -1,4 +1,3 @@
-// src/components/VideoCall.jsx
 import React, { useEffect, useRef } from "react";
 import { connect, createLocalTracks, LocalVideoTrack } from "twilio-video";
 
@@ -274,7 +273,7 @@ export default function VideoCall({ token, roomName, sessionId, identity,linkId,
       }
     }
 
-    // 🔑 helper: remove wrapper for a specific participant+track (fix ghost tiles)
+    //fix ghost tiles after user stops sharing screen
     function detachTrackWrapperForParticipant(participantIdentity, track) {
       const existing = participantThumbs.get(participantIdentity) || [];
       if (!existing.length) return;
@@ -394,7 +393,7 @@ export default function VideoCall({ token, roomName, sessionId, identity,linkId,
             } catch (_) {}
           });
 
-          // 🔑 if Twilio fires trackUnsubscribed, clean up wrapper
+          // if Twilio fires trackUnsubscribed, clean up wrapper
           participant.on("trackUnsubscribed", (track) => {
             detachTrackWrapperForParticipant(participant.identity, track);
           });

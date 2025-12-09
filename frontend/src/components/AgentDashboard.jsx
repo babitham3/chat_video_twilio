@@ -1,11 +1,10 @@
-// src/components/AgentDashboard.jsx
 import React, { useEffect, useState } from "react";
 import ChatRoom from "./ChatRoom";
 
 export default function AgentDashboard({ apiBase = "http://127.0.0.1:8000/api" }) {
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
-  const [agentId] = useState("agent1"); // simple single-agent default
+  const [agentId] = useState("agent1"); // simple single-agent 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

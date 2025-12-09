@@ -75,3 +75,9 @@ TWILIO_API_KEY_SECRET=xxxxxxxx
 TWILIO_AUTH_TOKEN=xxxxxxxx
 ```
 - You can get your credentials by signing up on twilio.com and creating an API key.
+
+## Future implementations
+- Recording a meeting using twilio rest apis.
+- Writing unit tests for backend server
+- Multi-agent log in feature
+- Creating an aesthetic UI
