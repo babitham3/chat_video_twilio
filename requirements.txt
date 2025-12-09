@@ -2,6 +2,7 @@ Django
 djangorestframework
 django-cors-headers
 
+daphne
 channels
 twilio
 pytz

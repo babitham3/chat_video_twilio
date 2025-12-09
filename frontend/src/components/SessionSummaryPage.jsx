@@ -111,7 +111,7 @@ export default function SessionSummaryPage({
             <span>Customer: </span>
             <strong>{session.customer_id || "visitor"}</strong>
             <span style={{ marginLeft: 12 }}>Agent: </span>
-            <strong>{session.agent_id || "—"}</strong>
+            <strong>{session.agent_id || "agent1"}</strong>
           </div>
           <div style={{ fontSize: 13, color: "#4b5563", marginBottom: 4 }}>
             <span>Status: </span>

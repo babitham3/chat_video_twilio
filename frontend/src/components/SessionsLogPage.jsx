@@ -53,7 +53,7 @@ export default function SessionsLogPage({ apiBase = "http://127.0.0.1:8000/api" 
         <div>
           <h1 style={{ margin: 0, color: "#111827" }}>Sessions history</h1>
           <p style={{ margin: 0, fontSize: 13, color: "#4b5563" }}>
-            View all sessions (active and closed) and drill down into meetings.
+            View all sessions (active and closed).
           </p>
         </div>
         <button
@@ -167,7 +167,7 @@ export default function SessionsLogPage({ apiBase = "http://127.0.0.1:8000/api" 
                     <div style={{ fontSize: 12, color: "#000000ff" }}>{s.id}</div>
                   </td>
                   <td style={tdStyle}>{s.customer_id || "visitor"}</td>
-                  <td style={tdStyle}>{s.agent_id || "—"}</td>
+                  <td style={tdStyle}>{s.agent_id || "agent1"}</td>
                   <td style={tdStyle}>
                     <span
                       style={{
