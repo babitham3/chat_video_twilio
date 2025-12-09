@@ -11,30 +11,61 @@ It demonstrates how a helpdesk platform can elevate a normal text chat into a li
 - Customer chat widget.
 - Agent dashboard with multiple simultaneous sessions.
 - Real-time messaging using Django Channels (WebSockets).
-- Online presence indicators.
 
 ### **Video Call Escalation**
 - Agent sends a video call link inside chat.
-- Customer clicks the link → meeting opens.
+- Customer clicks the link -> meeting opens.
 - Agent auto-joins when customer enters the meeting.
-- Local + remote media tiles with name badges.
-- Camera/mic toggle.
-- Screen sharing + expand mode.
-- Handles camera-off states cleanly.
+- Allows camera/mic toggle, screen share using twilio tracks.
 
 ### ** Meeting Analytics**
 - Logs every event:
   - join/leave
   - mute/unmute
   - screen share start/stop
-- Computes meeting duration automatically.
-- Detailed analytics pages:
+- Computes meeting analytics automatically.
 
 ### ** Twilio Integration**
 - Secure server-side video token generation.
 - WebRTC handled entirely through Twilio Video SDK.
-- Supports echo-free media routing.
+
 
 ---
 
-## 🏗 System Architecture (High Level)
+## Rough High Level Architecture
+
+- Customer Chat Widget -> Django API -> Twilio Token Issuer -> Twilio Video Cloud
+    | WebSocket | JWT
+- Agent Dashboard <- Django Channels <- Meeting events <- Meeting page
+
+## Setup Instructions
+
+### ** 1. Backend Setup(Django) **
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+python manage.py migrate
+python manage.py runserver
+```
+### ** 2. Frontend(React+Vite) **
+```bash
+cd frontend
+npm install
+npm run dev
+```
+### ** Default URLS: **
+```bash
+Frontend: http://localhost:5173
+Backend API : http://127.0.0.1:8000/api 
+```
+## Twilio Setup
+- Create ``bash .env ``` in backend:
+```bash
+TWILIO_ACCOUNT_SID=ACxxxx
+TWILIO_API_KEY_SID=SKxxxx
+TWILIO_API_KEY_SECRET=xxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxx
+```
