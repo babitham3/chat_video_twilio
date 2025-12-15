@@ -40,13 +40,9 @@ class MeetingLink(models.Model):
     session=models.ForeignKey('chat.Session',related_name='meeting_links',on_delete=models.CASCADE)
     creator=models.CharField(max_length=150,null=True,blank=True)
     room_name=models.CharField(max_length=255)
-    one_time=models.BooleanField(default=True)
-    allowed_count=models.IntegerField(default=2)
-    issued_count=models.IntegerField(default=0)
-    used=models.BooleanField(default=False)
+    room_sid=models.CharField(max_length=64,null=True,blank=True)
     expires_at=models.DateTimeField(null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
-    last_issued_at=models.DateTimeField(null=True,blank=True)
 
     class Meta:
         ordering=['-created_at']
@@ -56,7 +52,7 @@ class MeetingLink(models.Model):
             return False
         return timezone.now() > self.expires_at
     
-    def public_url(self,base='https://chat.app/meet/'):
+    def public_url(self,base='https://localhost:5173/meet/'):
         return f"{base}{self.id}"
     
     def __str__(self):

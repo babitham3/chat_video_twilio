@@ -19,4 +19,8 @@ urlpatterns=[
     path('meetings/<uuid:link_id>/analytics/',views.meeting_analytics),
     path('sessions/history/',views.list_all_sessions,name="sessions_history"),
     path('sessions/<uuid:session_id>/summary/',views.session_summary,name="session_summary"),
+    path('meetings/<uuid:link_id>/save-room-sid/',views.save_room_sid,name="save_room_sid"),
+    path('meetings/<uuid:link_id>/start-recording/',views.start_recording,name="start_recording"),
+    path('meetings/<uuid:link_id>/stop-recording/',views.stop_recording),
+    path('meetings/<uuid:link_id>/create-composition/', views.create_composition),
 ]

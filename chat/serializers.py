@@ -17,5 +17,5 @@ class MeetingLinkSerializer(serializers.ModelSerializer):
     session=serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model=MeetingLink
-        fields=['id','session','creator','room_name','one_time','allowed_count','issued_count','used','expires_at','created_at','last_issued_at']
-        read_only_fields=['id','issued_count','used','created_at','last_issued_at']
+        fields=['id','session','creator','room_name','room_sid','expires_at','created_at']
+        read_only_fields=['id','issued_count','created_at']

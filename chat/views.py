@@ -14,6 +14,8 @@ from twilio.jwt.access_token.grants import VideoGrant
 from datetime import timedelta
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from twilio.rest import Client
+from django.conf import settings
 
 #read sender and role from header or query param (simple stub auth)
 def get_sender_and_role(request):
@@ -78,8 +80,6 @@ def create_meeting_link(request,session_id):
         return Response({'error':'session not found'},status=404)
     
     creator=request.data.get('creator') or request.headers.get('X-User') or None
-    one_time=False
-    allowed_count=0
     expires_at=timezone.now()+timedelta(hours=1) #expires in one hour
 
     room_name=request.data.get('room_name') or f"session-{session_id}-{uuid.uuid4().hex[:8]}"
@@ -88,8 +88,6 @@ def create_meeting_link(request,session_id):
         session=session,
         creator=creator,
         room_name=room_name,
-        one_time=one_time,
-        allowed_count=allowed_count,
         expires_at=expires_at
     )
 
@@ -493,3 +491,88 @@ def session_summary(request, session_id):
     }
 
     return Response({"session": session_data, "meetings": meetings_out})
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def save_room_sid(request,link_id):
+    #POST /api/meeetings/<link>/save_room_sid. -> to save the twilio room SID created by SDK in browser
+    meeting= get_object_or_404(MeetingLink,id=link_id)
+    room_sid=request.data.get("room_sid")
+    if not room_sid:
+        return Response({"error":"missing room_sid"},status=400)
+    meeting.room_sid=room_sid
+    meeting.save(update_fields=["room_sid"])
+
+    return Response({
+        "status":"ok",
+        "room_sid":room_sid
+    })
+
+def _twilio_client():
+    sid=getattr(settings,"TWILIO_ACCOUNT_SID",None)
+    token=getattr(settings,"TWILIO_AUTH_TOKEN",None)
+    if not sid or not token:
+        raise RuntimeError("Twilio credentials are not configured")
+    return Client(sid,token)
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def start_recording(request, link_id):
+    meeting = get_object_or_404(MeetingLink, id=link_id)
+    if not meeting.room_sid:
+        return Response(
+            {"error": "room_sid not saved"},
+            status=400
+        )
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    client.video.rooms(meeting.room_sid).recording_rules.update(
+        rules=[{"type": "include", "all": True}]
+    )
+    return Response({
+        "status": "recording_started",
+        "room_sid": meeting.room_sid
+    })
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def stop_recording(request, link_id):
+    meeting = get_object_or_404(MeetingLink, id=link_id)
+    if not meeting.room_sid:
+        return Response(
+            {"error": "room_sid not saved"},
+            status=400
+        )
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    client.video.rooms(meeting.room_sid).recording_rules.update(rules=[{"type": "exclude", "all": True}])
+    return Response({
+        "status": "recording_stopped",
+        "room_sid": meeting.room_sid
+    })
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def create_composition(request, link_id):
+    # POST /api/meetings/<link_id>/create-composition/
+    try:
+        m = MeetingLink.objects.get(id=link_id)
+    except MeetingLink.DoesNotExist:
+        return Response({"error":"not_found"}, status=404)
+
+    if not m.room_sid:
+        return Response({"error":"missing_room_sid"}, status=400)
+
+    try:
+        client = _twilio_client()
+        comp = client.video.compositions.create(
+            room_sid=m.room_sid,
+            audio_sources="*",
+            video_layout={"grid": {"video_sources": ["*"]}},
+            format="mp4",
+        )
+        MeetingEvent.objects.create(meeting=m, session=m.session,
+                                    event_type="composition_created",
+                                    identity=request.data.get("identity"),
+                                    metadata={"composition_sid": comp.sid})
+        return Response({"composition_sid": comp.sid, "status": comp.status})
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

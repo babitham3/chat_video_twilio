@@ -17,9 +17,9 @@ export default function VideoCall({ token, roomName, sessionId, identity,linkId,
   const overlayContentRef = useRef(null);
   const overlayCloseRef = useRef(null);
 
-  // currently unused, safe to keep
-  const localScreenTrackRef = useRef(null);
-  const localScreenThumbRef = useRef(null);
+  const startRecBtnRef=useRef( null);
+  const stopRecBtnRef=useRef(null);
+  const createCompBtnRef=useRef(null);
 
   useEffect(() => {
     if (!token || !roomName) return;
@@ -45,6 +45,10 @@ export default function VideoCall({ token, roomName, sessionId, identity,linkId,
     const overlayEl = overlayRef.current;
     const overlayContentEl = overlayContentRef.current;
     const overlayCloseEl = overlayCloseRef.current;
+
+    const startRecBtn=startRecBtnRef.current;
+    const stopRecBtn=stopRecBtnRef.current;
+    const createCompBtn=createCompBtnRef.current;
 
     async function logEvent(eventType,extra={}){
         if(!linkId) return;
@@ -330,6 +334,19 @@ export default function VideoCall({ token, roomName, sessionId, identity,linkId,
         setStatus("Connecting to room…");
         room = await connect(token, { name: roomName, tracks });
 
+        try{
+          if(linkId){
+            await fetch(`${apiBase.replace(/\/$/, "")}/meetings/${linkId}/save-room-sid/`,{
+              method:"POST",
+              headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({room_sid:room.sid,identity,role}),
+            });
+            console.debug("saved room.sid to backend",room.sid);
+          }
+        }catch(err){
+          console.debug("save room sid failed",err);
+        }
+
         setStatus("Connected");
         await logEvent("joined",{role:role});
 
@@ -606,12 +623,88 @@ export default function VideoCall({ token, roomName, sessionId, identity,linkId,
       if (onLeave) onLeave();
     }
 
+    async function startRecordingHandler(){
+      if(!linkId) return alert("missing link id for record");
+      setStatus("Starting recording...");
+      try{
+        const res=await fetch(`${apiBase.replace(/\/$/,"")}/meetings/${linkId}/start-recording/`,{
+          method:"POST",
+          headers:{"Content-Type": "application/json"},
+          body: JSON.stringify({ identity, role }),
+        });
+        const data= await res.json().catch(()=>({}));
+        if(!res.ok){
+          console.error("start-recording failed", data);
+          setStatus("Recording start failed");
+          return;
+        }
+        setStatus("Recording started");
+      try { if (startRecBtn) startRecBtn.disabled = true; if (stopRecBtn) stopRecBtn.disabled = false; } catch(_){}
+      await logEvent("recording_started", { metadata: { by: identity } });
+      }catch (err) {
+      console.error("startRecording error", err);
+      setStatus("Recording start error");
+      }
+    }
+
+    async function stopRecordingHandler() {
+      if (!linkId) return alert("missing link id for record");
+      setStatus("Stopping recording…");
+      try {
+        const res = await fetch(`${apiBase.replace(/\/$/, "")}/meetings/${linkId}/stop-recording/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identity, role }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("stop-recording failed", data);
+          setStatus("Recording stop failed");
+          return;
+        }
+        setStatus("Recording stopped");
+        try { if (startRecBtn) startRecBtn.disabled = false; if (stopRecBtn) stopRecBtn.disabled = true; } catch(_){}
+        await logEvent("recording_stopped", { metadata: { by: identity } });
+      } catch (err) {
+        console.error("stopRecording error", err);
+        setStatus("Recording stop error");
+      }
+    }
+
+    async function createCompositionHandler() {
+      if (!linkId) return alert("missing link id for composition");
+      setStatus("Creating composition…");
+      try {
+        const res = await fetch(`${apiBase.replace(/\/$/, "")}/meetings/${linkId}/create-composition/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("create-composition failed", data);
+          setStatus("Composition failed");
+          return;
+        }
+        setStatus("Composition created: " + (data.composition_sid || "ok"));
+        await logEvent("composition_created", { metadata: { sid: data.composition_sid } });
+      } catch (err) {
+        console.error("createComposition error", err);
+        setStatus("Composition error");
+      }
+    }
+
+
+
     // attach handlers
     if (muteBtn) muteBtn.addEventListener("click", handleMuteClick);
     if (cameraBtn) cameraBtn.addEventListener("click", handleCameraClick);
     if (leaveBtn) leaveBtn.addEventListener("click", handleLeaveClick);
     if (shareBtn) shareBtn.addEventListener("click", handleShareClick);
     if (stopShareBtn) stopShareBtn.addEventListener("click", handleStopShareClick);
+
+    if(startRecBtn) startRecBtn.addEventListener("click",startRecordingHandler);
+    if(stopRecBtn) stopRecBtn.addEventListener("click",stopRecordingHandler);
+    if(createCompBtn) createCompBtn.addEventListener("click",createCompositionHandler);
 
     // initial button states
     if (joinBtn) {
@@ -639,6 +732,9 @@ export default function VideoCall({ token, roomName, sessionId, identity,linkId,
       if (leaveBtn) leaveBtn.removeEventListener("click", handleLeaveClick);
       if (shareBtn) shareBtn.removeEventListener("click", handleShareClick);
       if (stopShareBtn) stopShareBtn.removeEventListener("click", handleStopShareClick);
+      if (startRecBtn) startRecBtn.removeEventListener("click",startRecordingHandler);
+      if (stopRecBtn) stopRecBtn.removeEventListener("click",stopRecordingHandler);
+      if(createCompBtn) createCompBtn.removeEventListener("click",createCompositionHandler);
       try {
         if (room) room.disconnect();
       } catch (_) {}
@@ -746,6 +842,20 @@ export default function VideoCall({ token, roomName, sessionId, identity,linkId,
         >
           Stop sharing
         </button>
+
+        {role === "agent" && (
+          <>
+            <button ref={startRecBtnRef} style={{ padding: "8px 12px", borderRadius: 6 }}>
+              Start recording
+            </button>
+            <button ref={stopRecBtnRef} style={{ padding: "8px 12px", borderRadius: 6 }}>
+              Stop recording
+            </button>
+            <button ref={createCompBtnRef} style={{ padding: "8px 12px", borderRadius: 6 }}>
+              Create composition
+            </button>
+          </>
+        )}
 
         <div id="status" style={{ marginLeft: 12, fontSize: 13 }}>
           Status: <span ref={statusTextRef}>Connecting…</span>
